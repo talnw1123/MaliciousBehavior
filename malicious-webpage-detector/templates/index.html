@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malicious Webpage Behavior Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Malicious Webpage Behavior Detection System</h1>
+            <p class="subtitle">Analyze websites for suspicious and malicious behavior</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <form id="analyze-form">
+                    <div class="input-group">
+                        <label for="url-input">Enter URL to analyze:</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="url-input" name="url" placeholder="https://example.com" required>
+                            <button type="submit" id="analyze-btn">
+                                <span class="btn-text">Analyze</span>
+                                <span class="btn-loading" style="display: none;">
+                                    <span class="spinner"></span> Analyzing...
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section id="results-section" class="results-section" style="display: none;">
+                <div id="error-message" class="error-message" style="display: none;"></div>
+
+                <div id="results-content" style="display: none;">
+                    <div class="risk-header">
+                        <h2>Risk Assessment</h2>
+                        <div class="risk-badge" id="risk-badge">
+                            <span id="risk-level">-</span>
+                        </div>
+                    </div>
+
+                    <div class="risk-score-container">
+                        <div class="score-bar">
+                            <div class="score-fill" id="score-fill"></div>
+                        </div>
+                        <span class="score-text" id="score-text">0/100</span>
+                    </div>
+
+                    <div class="findings-container">
+                        <h3>Findings</h3>
+                        <div id="findings-list" class="findings-list"></div>
+                    </div>
+
+                    <div class="recommendations-container">
+                        <h3>Recommendations</h3>
+                        <ul id="recommendations-list" class="recommendations-list"></ul>
+                    </div>
+
+                    <div class="export-buttons">
+                        <button id="export-json-btn" class="export-btn" style="display: none;">
+                            Export JSON
+                        </button>
+                        <button id="export-pdf-btn" class="export-btn" style="display: none;">
+                            Export PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="history-section" class="history-section">
+                <div class="history-header">
+                    <h2>📋 Scan History</h2>
+                    <button id="clear-history-btn" class="clear-btn">Clear All</button>
+                </div>
+                <div id="history-list" class="history-list">
+                    <p class="empty-message">No scan history yet.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Malicious Webpage Behavior Detection System &copy; 2024</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
