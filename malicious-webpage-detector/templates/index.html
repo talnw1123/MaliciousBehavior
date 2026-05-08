@@ -4,87 +4,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Malicious Webpage Behavior Detection System</title>
+    <title>WebGuard - Malicious Webpage Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
+    <!-- Background Effects -->
+    <div class="bg-effects">
+        <div class="bg-gradient-1"></div>
+        <div class="bg-gradient-2"></div>
+        <div class="bg-grid"></div>
+    </div>
+
     <div class="container">
+        <!-- Header -->
         <header>
-            <h1>🛡️ Malicious Webpage Behavior Detection System</h1>
-            <p class="subtitle">Analyze websites for suspicious and malicious behavior</p>
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
+                </div>
+                <h1>WebGuard</h1>
+            </div>
+            <p class="subtitle">Advanced Malicious Webpage Behavior Detection System</p>
+            <div class="header-badges">
+                <span class="badge badge-safe">🔍 5 Detection Modules</span>
+                <span class="badge badge-info">🛡️ Google Safe Browsing</span>
+                <span class="badge badge-warning">⚡ Real-time Analysis</span>
+            </div>
         </header>
 
         <main>
+            <!-- Input Section -->
             <section class="input-section">
+                <div class="section-header">
+                    <h2>🔎 Analyze a Website</h2>
+                    <p>Enter a URL to scan for malicious behavior</p>
+                </div>
                 <form id="analyze-form">
-                    <div class="input-group">
-                        <label for="url-input">Enter URL to analyze:</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="url-input" name="url" placeholder="https://example.com" required>
-                            <button type="submit" id="analyze-btn">
-                                <span class="btn-text">Analyze</span>
-                                <span class="btn-loading" style="display: none;">
-                                    <span class="spinner"></span> Analyzing...
-                                </span>
-                            </button>
+                    <div class="input-wrapper">
+                        <div class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
                         </div>
+                        <input type="text" id="url-input" name="url" placeholder="Enter URL (e.g., https://example.com)"
+                            required autocomplete="off">
+                        <button type="submit" id="analyze-btn">
+                            <span class="btn-text">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="M21 21l-4.35-4.35" />
+                                </svg>
+                                Analyze
+                            </span>
+                            <span class="btn-loading" style="display: none;">
+                                <span class="spinner"></span> Analyzing...
+                            </span>
+                        </button>
                     </div>
                 </form>
+                <div class="input-hints">
+                    <span>💡 Try: example.com, github.com, or any suspicious URL</span>
+                </div>
             </section>
 
+            <!-- Results Section -->
             <section id="results-section" class="results-section" style="display: none;">
                 <div id="error-message" class="error-message" style="display: none;"></div>
 
                 <div id="results-content" style="display: none;">
-                    <div class="risk-header">
-                        <h2>Risk Assessment</h2>
-                        <div class="risk-badge" id="risk-badge">
-                            <span id="risk-level">-</span>
+                    <!-- Risk Overview Card -->
+                    <div class="risk-overview-card">
+                        <div class="risk-gauge">
+                            <div class="gauge-circle">
+                                <svg viewBox="0 0 120 120">
+                                    <circle class="gauge-bg" cx="60" cy="60" r="50" />
+                                    <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="50" />
+                                </svg>
+                                <div class="gauge-text">
+                                    <span class="gauge-score" id="gauge-score">0</span>
+                                    <span class="gauge-label">/100</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="risk-info">
+                            <h2>Risk Assessment</h2>
+                            <div class="risk-badge-large" id="risk-badge">
+                                <span id="risk-level">-</span>
+                            </div>
+                            <p class="risk-description" id="risk-description">Enter a URL to see the risk assessment</p>
                         </div>
                     </div>
 
-                    <div class="risk-score-container">
-                        <div class="score-bar">
-                            <div class="score-fill" id="score-fill"></div>
+                    <!-- Findings Summary -->
+                    <div class="findings-summary">
+                        <div class="summary-card" id="summary-iframe">
+                            <div class="summary-icon">🖼️</div>
+                            <div class="summary-info">
+                                <span class="summary-label">Iframes</span>
+                                <span class="summary-count" id="count-iframe">0</span>
+                            </div>
                         </div>
-                        <span class="score-text" id="score-text">0/100</span>
+                        <div class="summary-card" id="summary-js">
+                            <div class="summary-icon">📜</div>
+                            <div class="summary-info">
+                                <span class="summary-label">JavaScript</span>
+                                <span class="summary-count" id="count-js">0</span>
+                            </div>
+                        </div>
+                        <div class="summary-card" id="summary-scripts">
+                            <div class="summary-icon">🔗</div>
+                            <div class="summary-info">
+                                <span class="summary-label">Scripts</span>
+                                <span class="summary-count" id="count-scripts">0</span>
+                            </div>
+                        </div>
+                        <div class="summary-card" id="summary-links">
+                            <div class="summary-icon">📁</div>
+                            <div class="summary-info">
+                                <span class="summary-label">Links</span>
+                                <span class="summary-count" id="count-links">0</span>
+                            </div>
+                        </div>
+                        <div class="summary-card" id="summary-mining">
+                            <div class="summary-icon">⛏️</div>
+                            <div class="summary-info">
+                                <span class="summary-label">Mining</span>
+                                <span class="summary-count" id="count-mining">0</span>
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- Detailed Findings -->
                     <div class="findings-container">
-                        <h3>Findings</h3>
+                        <h3>📋 Detailed Findings</h3>
                         <div id="findings-list" class="findings-list"></div>
                     </div>
 
+                    <!-- Recommendations -->
                     <div class="recommendations-container">
-                        <h3>Recommendations</h3>
+                        <h3>💡 Recommendations</h3>
                         <ul id="recommendations-list" class="recommendations-list"></ul>
                     </div>
 
+                    <!-- Export Buttons -->
                     <div class="export-buttons">
                         <button id="export-json-btn" class="export-btn" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
                             Export JSON
                         </button>
                         <button id="export-pdf-btn" class="export-btn" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9V2h12v7" />
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                <rect x="6" y="14" width="12" height="8" />
+                            </svg>
                             Export PDF
                         </button>
                     </div>
                 </div>
             </section>
 
+            <!-- History Section -->
             <section id="history-section" class="history-section">
-                <div class="history-header">
+                <div class="section-header">
                     <h2>📋 Scan History</h2>
-                    <button id="clear-history-btn" class="clear-btn">Clear All</button>
+                    <button id="clear-history-btn" class="clear-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Clear All
+                    </button>
                 </div>
                 <div id="history-list" class="history-list">
-                    <p class="empty-message">No scan history yet.</p>
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p class="empty-message">No scan history yet.</p>
+                        <p class="empty-hint">Enter a URL above to start scanning!</p>
+                    </div>
                 </div>
             </section>
         </main>
 
+        <!-- Footer -->
         <footer>
-            <p>Malicious Webpage Behavior Detection System &copy; 2024</p>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="footer-logo">🛡️ WebGuard</span>
+                    <span class="footer-version">v2.0</span>
+                </div>
+                <div class="footer-links">
+                    <span>Built with Python + Flask</span>
+                    <span>•</span>
+                    <span>Powered by Google Safe Browsing</span>
+                </div>
+            </div>
         </footer>
     </div>
 

@@ -6,7 +6,7 @@ Flask Application Entry Point
 import json
 from flask import Flask, render_template, request, jsonify, send_file
 from scraper import WebScraper
-from detectors import IframeDetector, JSDetector, ScriptDetector, LinkDetector, RiskScorer
+from detectors import IframeDetector, JSDetector, ScriptDetector, LinkDetector, SafeBrowsingDetector, RiskScorer
 from database import ScanDatabase
 from config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG
 
@@ -42,33 +42,42 @@ def analyze():
     # Fetch the webpage
     soup, raw_html, status_or_error = scraper.fetch_page(url)
 
-    if soup is None:
-        return jsonify({
-            "error": f"Failed to fetch page: {status_or_error}",
-            "url": url,
-        }), 400
-
     # Get base domain
     base_domain = scraper.get_base_domain(url)
 
     # Run all detectors
     all_findings = []
 
-    # 1. Iframe detection
-    iframe_detector = IframeDetector(soup, base_domain)
-    all_findings.extend(iframe_detector.detect())
+    # 5. Google Safe Browsing API Check (Run this first as it works without HTML)
+    safe_browsing = SafeBrowsingDetector(url, soup)
+    sb_findings = safe_browsing.detect()
+    all_findings.extend(sb_findings)
 
-    # 2. JavaScript obfuscation detection
-    js_detector = JSDetector(soup, raw_html)
-    all_findings.extend(js_detector.detect())
+    if soup is None:
+        # If we couldn't fetch the page AND Safe Browsing didn't find anything, return the error
+        if not sb_findings:
+            return jsonify({
+                "error": f"Failed to fetch page: {status_or_error}",
+                "url": url,
+            }), 400
+        # Otherwise, we continue to return the Safe Browsing findings!
+    else:
+        # Only run HTML-based detectors if we successfully fetched the page
+        # 1. Iframe detection
+        iframe_detector = IframeDetector(soup, base_domain)
+        all_findings.extend(iframe_detector.detect())
 
-    # 3. External script detection
-    script_detector = ScriptDetector(soup, base_domain)
-    all_findings.extend(script_detector.detect())
+        # 2. JavaScript obfuscation detection
+        js_detector = JSDetector(soup, raw_html)
+        all_findings.extend(js_detector.detect())
 
-    # 4. Dangerous link detection
-    link_detector = LinkDetector(soup, raw_html)
-    all_findings.extend(link_detector.detect())
+        # 3. External script detection
+        script_detector = ScriptDetector(soup, base_domain)
+        all_findings.extend(script_detector.detect())
+
+        # 4. Dangerous link detection
+        link_detector = LinkDetector(soup, raw_html)
+        all_findings.extend(link_detector.detect())
 
     # Calculate risk score
     risk_scorer = RiskScorer()
@@ -98,6 +107,12 @@ def get_scan_detail(scan_id):
     """Get detailed scan result by ID."""
     detail = db.get_scan_detail(scan_id)
     if detail:
+        # Re-generate recommendations since they are not stored in the DB
+        if "recommendations" not in detail:
+            risk_scorer = RiskScorer()
+            risk_scorer.add_findings(detail.get("findings", []))
+            risk_scorer.risk_level = detail.get("risk_level", "LOW")
+            detail["recommendations"] = risk_scorer._generate_recommendations()
         return jsonify(detail)
     return jsonify({"error": "Scan not found"}), 404
 

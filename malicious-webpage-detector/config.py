@@ -2,8 +2,18 @@
 Configuration settings for the Malicious Webpage Behavior Detection System
 """
 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 # Request settings
 REQUEST_TIMEOUT = 10  # seconds
+
+# Google Safe Browsing API Key
+GOOGLE_SAFE_BROWSING_API_KEY = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY", "")
+
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -31,6 +41,22 @@ SUSPICIOUS_TLDS = [
     ".top",
     ".club",
     ".work",
+]
+
+# Trusted domains (Whitelist to prevent false positives)
+TRUSTED_DOMAINS = [
+    "googletagmanager.com",
+    "google-analytics.com",
+    "youtube.com",
+    "vimeo.com",
+    "cdnjs.cloudflare.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+    "cdn.jsdelivr.net",
+    "unpkg.com",
+    "code.jquery.com",
+    "stackpath.bootstrapcdn.com",
+    "use.fontawesome.com"
 ]
 
 # Dangerous file patterns
@@ -62,12 +88,13 @@ DANGEROUS_FILE_PATTERNS = [
     "secret_key",
 ]
 
-# Risk score thresholds
+# Risk score thresholds (Updated per new specification)
+# LOW: 0-39, MEDIUM: 40-69, HIGH: 70-89, CRITICAL: 90-100
 RISK_THRESHOLDS = {
-    "LOW": (0, 25),
-    "MEDIUM": (26, 50),
-    "HIGH": (51, 75),
-    "CRITICAL": (76, 100),
+    "LOW": (0, 39),
+    "MEDIUM": (40, 69),
+    "HIGH": (70, 89),
+    "CRITICAL": (90, 100),
 }
 
 # Flask settings

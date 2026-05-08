@@ -4,7 +4,7 @@ Detects scripts loaded from external or suspicious domains
 """
 
 from urllib.parse import urlparse
-from config import MALICIOUS_DOMAINS, SUSPICIOUS_TLDS
+from config import MALICIOUS_DOMAINS, SUSPICIOUS_TLDS, TRUSTED_DOMAINS
 
 
 class ScriptDetector:
@@ -59,6 +59,10 @@ class ScriptDetector:
         if script_domain == self.base_domain:
             return
 
+        # Check against trusted domains (whitelist)
+        if any(script_domain.endswith(trusted) for trusted in TRUSTED_DOMAINS):
+            return
+
         # Check against malicious domain blocklist
         if any(mal_domain in script_domain for mal_domain in MALICIOUS_DOMAINS):
             self.findings.append({
@@ -71,16 +75,16 @@ class ScriptDetector:
             })
             return
 
-        # Check for suspicious TLDs
+        # Check for suspicious TLDs (weak indicator)
         for tld in SUSPICIOUS_TLDS:
             if script_domain.endswith(tld):
                 self.findings.append({
                     "category": "external_script",
-                    "severity": "high",
-                    "points": 20,
+                    "severity": "medium",
+                    "points": 15,
                     "description": f"Script loaded from suspicious TLD: {script_domain}",
                     "evidence": f"src='{src}'",
-                    "recommendation": "Scripts from free/suspicious TLDs are often used in malicious campaigns",
+                    "recommendation": "Scripts from free/suspicious TLDs are often used in malicious campaigns, but this is a weak indicator",
                 })
                 return
 
@@ -89,10 +93,10 @@ class ScriptDetector:
             self.findings.append({
                 "category": "external_script",
                 "severity": "medium",
-                "points": 10,
+                "points": 15,
                 "description": f"Script loaded over insecure HTTP: {script_domain}",
                 "evidence": f"src='{src}'",
-                "recommendation": "Scripts over HTTP can be intercepted and modified by attackers",
+                "recommendation": "Scripts over HTTP can be intercepted and modified by attackers (man-in-the-middle attack)",
             })
             return
 

@@ -4,7 +4,7 @@ Detects hidden and suspicious iframes in webpage HTML
 """
 
 from urllib.parse import urlparse
-from config import MALICIOUS_DOMAINS, SUSPICIOUS_TLDS
+from config import MALICIOUS_DOMAINS, SUSPICIOUS_TLDS, TRUSTED_DOMAINS
 
 
 class IframeDetector:
@@ -35,44 +35,63 @@ class IframeDetector:
 
     def _check_hidden(self, iframe):
         """Check if iframe is hidden using CSS or attributes."""
+        # First check if it's a trusted domain to prevent false positives (like GTM)
+        src = iframe.get("src", "")
+        if src:
+            if src.startswith("//"): src = "https:" + src
+            try:
+                parsed = urlparse(src)
+                domain = parsed.netloc.lower()
+                if any(domain.endswith(trusted) for trusted in TRUSTED_DOMAINS):
+                    return
+            except Exception:
+                pass
+
         style = iframe.get("style", "").lower()
         width = iframe.get("width", "")
         height = iframe.get("height", "")
 
         is_hidden = False
         reason = ""
+        points = 25  # Default points for hidden iframes
 
-        # Check for display:none
+        # Check for display:none (most suspicious)
         if "display:none" in style or "display: none" in style:
             is_hidden = True
             reason = "Hidden iframe detected with 'display:none'"
+            points = 25
 
         # Check for visibility:hidden
         elif "visibility:hidden" in style or "visibility: hidden" in style:
             is_hidden = True
             reason = "Hidden iframe detected with 'visibility:hidden'"
+            points = 25
 
-        # Check for opacity:0
-        elif "opacity:0" in style or "opacity: 0" in style:
-            is_hidden = True
-            reason = "Hidden iframe detected with 'opacity:0'"
-
-        # Check for width/height = 0
+        # Check for width/height = 0 (zero-pixel iframe)
         elif width == "0" or height == "0":
             is_hidden = True
             reason = "Hidden iframe detected with width=0 or height=0"
+            points = 25
 
-        # Check for position:absolute with negative offsets
+        # Check for position:absolute with negative offsets (off-screen)
         elif "position:absolute" in style and ("left:-" in style or "top:-" in style):
             is_hidden = True
             reason = "Hidden iframe detected with absolute positioning off-screen"
+            points = 20
+
+        # Check for opacity:0 (less suspicious, may be used legitimately)
+        elif "opacity:0" in style or "opacity: 0" in style:
+            is_hidden = True
+            reason = "Hidden iframe detected with 'opacity:0'"
+            points = 15
 
         if is_hidden:
             src = iframe.get("src", "unknown")
+            severity = "high" if points >= 25 else "medium"
             self.findings.append({
                 "category": "iframe",
-                "severity": "high",
-                "points": 25,
+                "severity": severity,
+                "points": points,
                 "description": reason,
                 "evidence": str(iframe)[:200],
                 "recommendation": "Hidden iframes may redirect to phishing or malware pages without user knowledge",
@@ -97,6 +116,10 @@ class IframeDetector:
         except Exception:
             return
 
+        # Check against trusted domains (whitelist)
+        if any(iframe_domain.endswith(trusted) for trusted in TRUSTED_DOMAINS):
+            return
+
         # Check against malicious domain blocklist
         if any(mal_domain in iframe_domain for mal_domain in MALICIOUS_DOMAINS):
             self.findings.append({
@@ -115,28 +138,40 @@ class IframeDetector:
                 self.findings.append({
                     "category": "iframe",
                     "severity": "medium",
-                    "points": 20,
+                    "points": 15,
                     "description": f"Iframe loads content from suspicious TLD: {iframe_domain}",
                     "evidence": f"src='{src}'",
                     "recommendation": "Iframes from free/suspicious TLDs are often used in phishing attacks",
                 })
                 return
 
-        # Check if domain is different from base domain
+        # Check if domain is different from base domain (weak indicator)
         if self.base_domain and iframe_domain != self.base_domain:
             self.findings.append({
                 "category": "iframe",
-                "severity": "medium",
-                "points": 15,
+                "severity": "low",
+                "points": 5,
                 "description": f"Iframe loads content from external domain: {iframe_domain}",
                 "evidence": f"src='{src}'",
-                "recommendation": "External iframes may load unwanted or malicious content",
+                "recommendation": "External iframes may load unwanted or malicious content, but this is common for embedded content like YouTube or maps",
             })
 
     def _check_sandbox_attribute(self, iframe):
         """Check for potentially misused sandbox attribute."""
         sandbox = iframe.get("sandbox", "")
         if sandbox is not None:  # Attribute exists
+            # Check if it's a trusted domain to prevent false positives
+            src = iframe.get("src", "")
+            if src:
+                if src.startswith("//"): src = "https:" + src
+                try:
+                    parsed = urlparse(src)
+                    domain = parsed.netloc.lower()
+                    if any(domain.endswith(trusted) for trusted in TRUSTED_DOMAINS):
+                        return
+                except Exception:
+                    pass
+
             # Empty sandbox or with dangerous permissions
             dangerous_permissions = ["allow-scripts", "allow-same-origin"]
             has_dangerous = any(p in sandbox for p in dangerous_permissions)

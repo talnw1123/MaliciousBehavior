@@ -32,6 +32,7 @@ class RiskScorer:
             "iframe": 50,           # Max 50 points for all iframe findings
             "javascript": 50,       # Max 50 points for all JS findings
             "cryptojacking": 50,    # Max 50 points for cryptojacking findings
+            "safe_browsing": 100,   # Max 100 points for safe browsing (can trigger critical alone)
         }
 
         category_scores = {}
@@ -131,6 +132,11 @@ class RiskScorer:
         if "dangerous_link" in categories:
             recommendations.append(
                 "Links to sensitive files detected - configuration files or credentials may be exposed"
+            )
+            
+        if "safe_browsing" in categories:
+            recommendations.append(
+                "GOOGLE SAFE BROWSING ALERT: This site or its resources have been flagged as malicious by Google!"
             )
 
         # General recommendation based on risk level

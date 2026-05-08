@@ -94,11 +94,11 @@ class JSDetector:
 
             self.findings.append({
                 "category": "javascript",
-                "severity": "high",
-                "points": 15,
+                "severity": "medium",
+                "points": 10,
                 "description": "Base64 encoding/decoding detected (atob/btoa) - may hide malicious payloads",
                 "evidence": self._truncate(context),
-                "recommendation": "Base64 encoding is often used to obfuscate malicious scripts",
+                "recommendation": "Base64 encoding is often used to obfuscate malicious scripts, but is also found in legitimate websites",
             })
 
     def _check_string_from_char_code(self, js):
@@ -180,16 +180,17 @@ class JSDetector:
         if matches:
             self.findings.append({
                 "category": "javascript",
-                "severity": "medium",
-                "points": 10,
+                "severity": "low",
+                "points": 5,
                 "description": "Excessive string concatenation detected - possible obfuscation",
                 "evidence": self._truncate(matches[0]),
-                "recommendation": "String concatenation is used to build malicious URLs or code dynamically",
+                "recommendation": "String concatenation is used to build malicious URLs or code dynamically, but is also common in legitimate code",
             })
 
     def _check_cryptojacking(self, js):
         """Check for cryptocurrency mining scripts."""
-        mining_patterns = [
+        # Known mining libraries (direct evidence) - 30 points
+        mining_libraries = [
             r'\bCoinHive\b',
             r'\bcoinhive\b',
             r'\bCoinImp\b',
@@ -197,16 +198,28 @@ class JSDetector:
             r'\bWebMiner\b',
             r'\bJSECoin\b',
             r'\bMinerGate\b',
-            r'\bmonero\b',
-            r'\bXMR\b',
             r'\bCoinMiner\b',
             r'\bCryptoMiner\b',
+            r'\bCoinHive\.Anonymous\b',
+        ]
+
+        # Mining functions (specific to mining) - 20 points
+        mining_functions = [
             r'\bhashrate\b',
             r'\bstartMining\b',
             r'\bstopMining\b',
             r'\bgetMiningStats\b',
             r'\bminer\.start\b',
-            r'\bCoinHive\.Anonymous\b',
+        ]
+
+        # Cryptocurrency keywords (weaker indicator) - 20 points
+        crypto_keywords = [
+            r'\bmonero\b',
+            r'\bXMR\b',
+        ]
+
+        # Mining domain URLs (direct evidence) - 30 points
+        mining_domains = [
             r'\bcoinhive\.com\b',
             r'\bcryptoloot\.pro\b',
             r'\bwebmine\.pro\b',
@@ -215,17 +228,57 @@ class JSDetector:
             r'\bcoinimp\.com\b',
         ]
 
-        for pattern in mining_patterns:
+        # Check mining libraries first (highest priority)
+        for pattern in mining_libraries:
             if re.search(pattern, js, re.IGNORECASE):
                 self.findings.append({
                     "category": "cryptojacking",
                     "severity": "critical",
                     "points": 30,
-                    "description": "Cryptocurrency mining script detected - your device may be used for mining",
+                    "description": "Known cryptocurrency mining library detected - your device may be used for mining",
                     "evidence": self._truncate(f"Pattern: {pattern}"),
                     "recommendation": "This site is using your device's CPU to mine cryptocurrency. Leave immediately!",
                 })
-                return  # Only report once per page
+                return
+
+        # Check mining domain URLs
+        for pattern in mining_domains:
+            if re.search(pattern, js, re.IGNORECASE):
+                self.findings.append({
+                    "category": "cryptojacking",
+                    "severity": "critical",
+                    "points": 30,
+                    "description": "Connection to known mining pool/domain detected - your device may be used for mining",
+                    "evidence": self._truncate(f"Pattern: {pattern}"),
+                    "recommendation": "This site is using your device's CPU to mine cryptocurrency. Leave immediately!",
+                })
+                return
+
+        # Check mining functions
+        for pattern in mining_functions:
+            if re.search(pattern, js, re.IGNORECASE):
+                self.findings.append({
+                    "category": "cryptojacking",
+                    "severity": "high",
+                    "points": 20,
+                    "description": "Cryptocurrency mining function detected - your device may be used for mining",
+                    "evidence": self._truncate(f"Pattern: {pattern}"),
+                    "recommendation": "This site may be using your device's CPU to mine cryptocurrency.",
+                })
+                return
+
+        # Check crypto keywords
+        for pattern in crypto_keywords:
+            if re.search(pattern, js, re.IGNORECASE):
+                self.findings.append({
+                    "category": "cryptojacking",
+                    "severity": "high",
+                    "points": 20,
+                    "description": "Cryptocurrency keyword detected - possible mining activity",
+                    "evidence": self._truncate(f"Pattern: {pattern}"),
+                    "recommendation": "This site may be related to cryptocurrency mining.",
+                })
+                return
 
     def _truncate(self, text, max_length=150):
         """Truncate text for display."""

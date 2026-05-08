@@ -54,8 +54,28 @@ class LinkDetector:
             pattern_lower = pattern.lower()
             # Use word boundary or path separator matching for better accuracy
             if self._pattern_in_url(pattern_lower, href_lower):
-                severity = "high" if pattern in [".git", ".env", ".htaccess", "api_key", "secret_key"] else "medium"
-                points = 15 if severity == "high" else 10
+                # Updated scoring per new specification
+                if pattern in [".git", ".env"]:
+                    severity = "high"
+                    points = 25
+                elif pattern in [".htaccess"]:
+                    severity = "medium"
+                    points = 10
+                elif pattern in ["config.php", "config.json", "config.yml", "web.config", "database.yml", "settings.py"]:
+                    severity = "high"
+                    points = 20
+                elif pattern in [".bak", ".backup", ".old", ".sql", ".dump"]:
+                    severity = "medium"
+                    points = 10
+                elif pattern in ["/admin", "/wp-admin", "/phpmyadmin", "/wp-login", "/administrator", "/cpanel", "/manager"]:
+                    severity = "medium"
+                    points = 15
+                elif pattern in ["api_key", "api_token", "access_token", "secret_key"]:
+                    severity = "high"
+                    points = 20
+                else:
+                    severity = "medium"
+                    points = 10
 
                 self.findings.append({
                     "category": "dangerous_link",
@@ -81,16 +101,17 @@ class LinkDetector:
     def _check_patterns_in_raw_html(self):
         """Check raw HTML for dangerous file patterns that might not be in links."""
         # Look for patterns like .git/, .env, config.php in text or comments
+        # Updated scoring per new specification
         patterns_to_check = [
-            (r'\.git/', ".git directory exposure", 15, "high"),
-            (r'\.env\b', ".env file exposure", 15, "high"),
+            (r'\.git/', ".git directory exposure", 25, "high"),
+            (r'\.env\b', ".env file exposure", 25, "high"),
             (r'\.htaccess', ".htaccess file exposure", 10, "medium"),
-            (r'config\.(php|json|yml|yaml|xml)', "Configuration file exposure", 10, "medium"),
+            (r'config\.(php|json|yml|yaml|xml)', "Configuration file exposure", 20, "high"),
             (r'\.(bak|backup|old|sql|dump)\b', "Backup file exposure", 10, "medium"),
-            (r'/wp-admin', "WordPress admin panel", 10, "medium"),
-            (r'/phpmyadmin', "phpMyAdmin panel", 10, "medium"),
-            (r'api[_-]?key\s*[:=]', "API key exposure", 15, "high"),
-            (r'secret[_-]?key\s*[:=]', "Secret key exposure", 15, "high"),
+            (r'/wp-admin', "WordPress admin panel", 15, "medium"),
+            (r'/phpmyadmin', "phpMyAdmin panel", 15, "medium"),
+            (r'api[_-]?key\s*[:=]', "API key exposure", 20, "high"),
+            (r'secret[_-]?key\s*[:=]', "Secret key exposure", 20, "high"),
         ]
 
         for pattern, description, points, severity in patterns_to_check:

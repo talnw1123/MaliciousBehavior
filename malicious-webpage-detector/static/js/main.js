@@ -1,5 +1,6 @@
 /**
- * Malicious Webpage Behavior Detection System - Frontend JavaScript
+ * WebGuard - Malicious Webpage Behavior Detection System
+ * Modern Frontend JavaScript
  */
 
 let currentScanId = null;
@@ -15,14 +16,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const resultsContent = document.getElementById("results-content");
     const riskBadge = document.getElementById("risk-badge");
     const riskLevel = document.getElementById("risk-level");
-    const scoreFill = document.getElementById("score-fill");
-    const scoreText = document.getElementById("score-text");
+    const gaugeFill = document.getElementById("gauge-fill");
+    const gaugeScore = document.getElementById("gauge-score");
+    const riskDescription = document.getElementById("risk-description");
     const findingsList = document.getElementById("findings-list");
     const recommendationsList = document.getElementById("recommendations-list");
     const exportJsonBtn = document.getElementById("export-json-btn");
     const exportPdfBtn = document.getElementById("export-pdf-btn");
     const clearHistoryBtn = document.getElementById("clear-history-btn");
     const historyList = document.getElementById("history-list");
+
+    // Summary counters
+    const countIframe = document.getElementById("count-iframe");
+    const countJs = document.getElementById("count-js");
+    const countScripts = document.getElementById("count-scripts");
+    const countLinks = document.getElementById("count-links");
+    const countMining = document.getElementById("count-mining");
 
     // Load history on page load
     loadHistory();
@@ -69,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
             btnLoading.style.display = "inline-flex";
         } else {
             analyzeBtn.disabled = false;
-            btnText.style.display = "inline";
+            btnText.style.display = "inline-flex";
             btnLoading.style.display = "none";
         }
     }
@@ -94,21 +103,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Update risk level
         riskLevel.textContent = data.risk_level;
-        riskBadge.className = "risk-badge " + data.risk_level.toLowerCase();
+        riskBadge.className = "risk-badge-large " + data.risk_level.toLowerCase();
 
-        // Update score bar
+        // Update gauge
         const score = data.risk_score;
-        scoreFill.style.width = score + "%";
-        scoreText.textContent = score + "/100";
+        const circumference = 2 * Math.PI * 50; // r=50
+        const offset = circumference - (score / 100) * circumference;
+        gaugeFill.style.strokeDashoffset = offset;
+        gaugeScore.textContent = score;
 
-        // Set score bar color based on risk level
+        // Set gauge color based on risk level
         const colors = {
             LOW: "var(--color-low)",
             MEDIUM: "var(--color-medium)",
             HIGH: "var(--color-high)",
             CRITICAL: "var(--color-critical)",
         };
-        scoreFill.style.backgroundColor = colors[data.risk_level] || colors.LOW;
+        gaugeFill.style.stroke = colors[data.risk_level] || colors.LOW;
+
+        // Update risk description
+        const descriptions = {
+            LOW: "This website appears to be safe. No significant threats detected.",
+            MEDIUM: "Some suspicious behavior detected. Exercise caution when using this site.",
+            HIGH: "Multiple threats detected. Avoid entering personal information on this site.",
+            CRITICAL: "Severe threats detected! Avoid this website completely.",
+        };
+        riskDescription.textContent = descriptions[data.risk_level] || "";
+
+        // Update summary counts
+        updateSummaryCounts(data.findings);
 
         // Update findings
         findingsList.innerHTML = "";
@@ -117,14 +140,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 const findingEl = document.createElement("div");
                 findingEl.className = "finding-item " + finding.severity.toLowerCase();
                 findingEl.innerHTML = `
-                    <span class="finding-category">${finding.category}</span>
+                    <div class="finding-header">
+                        <span class="finding-category">${finding.category}</span>
+                        <span class="finding-points">+${finding.points} points</span>
+                    </div>
                     <p class="finding-description">${finding.description}</p>
                     <code class="finding-evidence">${escapeHtml(finding.evidence)}</code>
                 `;
                 findingsList.appendChild(findingEl);
             });
         } else {
-            findingsList.innerHTML = "<p>No suspicious behavior detected.</p>";
+            findingsList.innerHTML = "<p class='empty-message'>No suspicious behavior detected.</p>";
         }
 
         // Update recommendations
@@ -141,8 +167,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Show export buttons
-        exportJsonBtn.style.display = "inline-block";
-        exportPdfBtn.style.display = "inline-block";
+        exportJsonBtn.style.display = "inline-flex";
+        exportPdfBtn.style.display = "inline-flex";
 
         // Get the latest scan ID from history
         loadHistory().then(() => {
@@ -153,6 +179,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
         });
+    }
+
+    function updateSummaryCounts(findings) {
+        const counts = {
+            iframe: 0,
+            javascript: 0,
+            external_script: 0,
+            dangerous_link: 0,
+            cryptojacking: 0,
+        };
+
+        if (findings) {
+            findings.forEach((f) => {
+                if (counts.hasOwnProperty(f.category)) {
+                    counts[f.category]++;
+                }
+            });
+        }
+
+        countIframe.textContent = counts.iframe;
+        countJs.textContent = counts.javascript;
+        countScripts.textContent = counts.external_script;
+        countLinks.textContent = counts.dangerous_link;
+        countMining.textContent = counts.cryptojacking;
     }
 
     function escapeHtml(text) {
@@ -190,7 +240,13 @@ document.addEventListener("DOMContentLoaded", () => {
             historyList.innerHTML = "";
 
             if (history.length === 0) {
-                historyList.innerHTML = '<p class="empty-message">No scan history yet.</p>';
+                historyList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p class="empty-message">No scan history yet.</p>
+                        <p class="empty-hint">Enter a URL above to start scanning!</p>
+                    </div>
+                `;
                 return;
             }
 
@@ -242,6 +298,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             currentScanId = scanId;
             displayResults(data);
+
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: "smooth" });
         } catch (error) {
             showError("Failed to load scan details.");
         }
